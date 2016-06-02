@@ -1,0 +1,10 @@
+#include "StandardLib.hpp"
+#include "Value.hpp"
+
+namespace mc {
+
+  void initStandardLib() {
+
+  }
+  
+}

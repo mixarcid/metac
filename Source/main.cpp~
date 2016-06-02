@@ -1,0 +1,11 @@
+#include <cstdio>
+#include "Parser.hpp"
+
+int main() {
+
+  mc::String test("(print \"2+2: %\" (+ 2 2.0))");
+  printf("String input: %s\n", test.c_str());
+  printf("Lexer output: %s\n", mc::to_string(mc::lex(test)).c_str());
+  return 0;
+
+}

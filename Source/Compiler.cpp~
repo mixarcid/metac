@@ -1,0 +1,15 @@
+#include "Compiler.hpp"
+#include <cstdio>
+
+namespace mc {
+
+  void Compiler::parseString(String code) {
+
+    Lexer lexer(code);
+    lexer.lex();
+    printf("String input: %s\n", code.c_str());
+    printf("Lexer output: %s\n", to_string(lexer.token_stream).c_str());
+
+  }
+
+}

@@ -1,0 +1,79 @@
+#include "Value.hpp"
+
+namespace mc {
+
+  Value::Value(Type _type) : type(_type) {
+    switch (type) {
+    case Type::STRING:
+      new (&str_val) String();
+      break;
+    default: break;
+    }
+  }
+  
+  Value::Value(const Value& b) : type(b.type) {
+    switch (type) {
+    case Type::CHAR:
+      char_val = b.char_val;
+      break;
+    case Type::INT:
+      int_val = b.int_val;
+      break;
+    case Type::FLOAT:
+      float_val = b.float_val;
+      break;
+    case Type::STRING:
+      new (&str_val) String(b.str_val);
+      break;
+    default: break;
+    }
+  }
+  
+  Value::Value(Value&& b) : type(b.type) {
+    switch (type) {
+    case Type::CHAR:
+      char_val = b.char_val;
+      break;
+    case Type::INT:
+      int_val = b.int_val;
+      break;
+    case Type::FLOAT:
+      float_val = b.float_val;
+      break;
+    case Type::STRING:
+      new (&str_val) String(b.str_val);
+      break;
+    default: break;
+    }
+  }
+  
+  Value::~Value() {
+    switch (type) {
+    case Type::STRING:
+      str_val.~String();
+      break;
+    default: break;
+    }
+  }
+  
+  void Value::operator=(const Value& b) {
+    switch (type) {
+    case Type::STRING:
+      str_val.~String();
+      break;
+    default: break;
+    }
+    new (this) Value(b);
+  }
+  
+  void Value::operator=(Value&& b) {
+    switch (type) {
+    case Type::STRING:
+      str_val.~String();
+      break;
+    default: break;
+    }
+    new (this) Value(b);
+  }
+
+}

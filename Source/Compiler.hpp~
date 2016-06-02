@@ -1,0 +1,13 @@
+#pragma once
+
+#include "Lexer.hpp"
+
+namespace mc {
+
+  struct Compiler {
+
+    void parseString(String code);
+    
+  };
+
+}

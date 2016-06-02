@@ -1,0 +1,9 @@
+#pragma once
+
+#include <string>
+
+namespace mc {
+
+  typdef std::string String;
+
+}

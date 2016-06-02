@@ -1,0 +1,18 @@
+#include "SymbolTable.hpp"
+
+namespace mc {
+
+  SymbolTable SymbolTable::table;
+
+  Id SymbolTable::addSymbol(String name, Type type) {
+    Id id = table.symbol_arr.size();
+    table.symbol_arr.emplace_back(type);
+    table.symbol_map[name] = id;
+    return id;
+  }
+  
+  Value* SymbolTable::getValue(Id id) {
+    return &(table.symbol_arr[id]);
+  }
+
+}
