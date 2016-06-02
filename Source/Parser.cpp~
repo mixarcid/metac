@@ -1,9 +1,0 @@
-#include "Parser.hpp"
-
-namespace mc {
-
-  void Parser::parse() {
-    
-  }
-
-}
