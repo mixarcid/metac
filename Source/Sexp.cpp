@@ -53,7 +53,10 @@ namespace mc {
 
     default:
       ret = Value(Type::ERROR);
-      ret.str_val = "first element in expression is not callable";
+      ret.str_val =
+	"first element in expression (" +
+	to_string(func) +
+	") is not callable";
       break;
     }
     return ret;

@@ -135,9 +135,9 @@ namespace mc {
       break;
     case TokenId::BOOL:
       if (tok.bool_val) {
-	ret += "#t";
+	ret += "true";
       } else {
-	ret += "#f";
+	ret += "false";
       }
     case TokenId::CHAR:
       ret += "\'";
@@ -359,10 +359,10 @@ namespace mc {
 
 	  if (word == "nil") {
 	    cur_token = Token(TokenId::NIL);
-	  } else if (word == "#t") {
+	  } else if (word == "true") {
 	    cur_token = Token(TokenId::BOOL);
 	    cur_token.bool_val = true;
-	  } else if (word == "#f") {
+	  } else if (word == "false") {
 	    cur_token = Token(TokenId::BOOL);
 	    cur_token.bool_val = false;
 	  } else {

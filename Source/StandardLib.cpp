@@ -2,6 +2,7 @@
 #include "SymbolTable.hpp"
 #include "Sexp.hpp"
 #include "Function.hpp"
+#include <cmath>
 
 #define stdAssert(cond, msg)			\
   do {						\
@@ -244,6 +245,102 @@ namespace mc {
     return ret;
   }
 
+  Value div(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 2,
+	      "/ function only takes 2 arguments");
+    err.str_val = "/ function only takes ints and floats as arguments";
+
+    Value ret(Type::FLOAT);
+    
+    switch(values[0].type) {
+    case Type::INT:
+      switch(values[1].type) {
+      case Type::INT:
+	ret = Value(Type::INT);
+	ret.int_val = values[0].int_val / values[1].int_val;
+	break;
+      case Type::FLOAT:
+	ret.float_val = values[0].int_val / values[1].float_val;
+	break;
+      default:
+	return err;
+      }
+      break;
+
+    case Type::FLOAT:
+      switch(values[1].type) {
+      case Type::INT:
+	ret.float_val = values[0].float_val / values[1].int_val;
+	break;
+      case Type::FLOAT:
+	ret.float_val = values[0].float_val / values[1].float_val;
+	break;
+      default:
+	return err;
+      }
+      break;
+
+    default:
+      return err;
+    }
+    return ret;
+  }
+
+  Value mod(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 2,
+	      "% function only takes 2 arguments");
+    err.str_val = "% function only takes ints and floats as arguments";
+
+    Value ret(Type::FLOAT);
+    
+    switch(values[0].type) {
+    case Type::INT:
+      switch(values[1].type) {
+      case Type::INT:
+	ret = Value(Type::INT);
+	ret.int_val = values[0].int_val % values[1].int_val;
+	break;
+      case Type::FLOAT:
+	ret.float_val = fmod(values[0].int_val, values[1].float_val);
+	break;
+      default:
+	return err;
+      }
+      break;
+
+    case Type::FLOAT:
+      switch(values[1].type) {
+      case Type::INT:
+	ret.float_val = fmod(values[0].float_val, values[1].int_val);
+	break;
+      case Type::FLOAT:
+	ret.float_val = fmod(values[0].float_val, values[1].float_val);
+	break;
+      default:
+	return err;
+      }
+      break;
+
+    default:
+      return err;
+    }
+    return ret;
+  }
+
+  Value to_int(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 1,
+	      "to-int function only takes 1 argument");
+    if (values[0].type == Type::INT) return values[0];
+    stdAssert(values[0].type == Type::FLOAT,
+	      "to-int function only takes floats or ints");
+    Value ret(Type::INT);
+    ret.int_val = values[0].float_val;
+    return ret;
+  }
+
   Value bool_not(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() == 1,
@@ -405,6 +502,30 @@ namespace mc {
     
   }
 
+  Value size(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 1,
+	      "size function takes one argument");
+    stdAssert(values[0].type == Type::ARRAY,
+	      "argument to size function must be an array");
+    Value ret(Type::INT);
+    ret.int_val = values[0].array_val.size();
+    return ret;
+  }
+
+  Value at(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 2,
+	      "at function takes two arguments");
+    stdAssert(values[0].type == Type::ARRAY,
+	      "first argument to at function must be an array");
+    stdAssert(values[1].type == Type::INT,
+	      "second argument to at function must be an int");
+    stdAssert(values[1].int_val < values[0].array_val.size(),
+	      "at function called with out-of-bounds index");
+    return values[0].array_val[values[1].int_val];
+  }
+
   Value print(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
@@ -489,12 +610,17 @@ namespace mc {
     define_func("+", add);
     define_func("-", sub);
     define_func("*", mul);
+    define_func("/", div);
+    define_func("%", mod);
+    define_func("to-int", to_int);
     define_func("not", bool_not);
     define_func("and", bool_and);
     define_func("or", bool_or);
     define_func("=", equals);
     define_func(">", greater);
     define_func("<", lesser);
+    define_func("at", at);
+    define_func("size", size);
     define_func("print", print);
     define_func("do", _do);
     

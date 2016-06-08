@@ -180,9 +180,9 @@ namespace mc {
     switch(val.type) {
     case Type::BOOL:
       if (val.bool_val) {
-	return "#t";
+	return "true";
       } else {
-	return "#f";
+	return "false";
       }
     case Type::CHAR:
       {
