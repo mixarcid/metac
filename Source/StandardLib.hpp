@@ -2,6 +2,8 @@
 
 namespace mc {
 
-  void initStandardLib();
+  struct SymbolTable;
+  
+  void initStandardLib(SymbolTable* table);
 
 }

@@ -3,27 +3,35 @@
 
 namespace mc {
 
-  SymbolTable SymbolTable::table;
-  const SymbolTable::Id SymbolTable::NO_SYMBOL = LONG_MAX;
-
-  SymbolTable::Id SymbolTable::addSymbol(String name) {
-    Id id = table.symbol_arr.size();
-    table.symbol_arr.emplace_back(Type::NIL);
-    table.symbol_map[name] = id;
-    return id;
+  void SymbolTable::addSymbol(String name) {
+    symbol_map[name] = Value(Type::NIL);
   }
 
-  SymbolTable::Id SymbolTable::findSymbol(String name) {
-    auto it = table.symbol_map.find(name);
-    if (it == table.symbol_map.end()) {
-      return NO_SYMBOL;
+  bool SymbolTable::hasSymbol(String name) {
+    auto it = symbol_map.find(name);
+    if (it == symbol_map.end()) {
+      if (parent) {
+	return parent->getValue(name);
+      } else {
+	return false;
+      }
     } else {
-      return it->second;
+      return true;
     }
   }
   
-  Value* SymbolTable::getValue(SymbolTable::Id id) {
-    return &(table.symbol_arr[id]);
+  Value* SymbolTable::getValue(String name) {
+    auto it = symbol_map.find(name);
+    if (it == symbol_map.end()) {
+      if (parent) {
+	return parent->getValue(name);
+      } else {
+	assert(false);
+	return NULL;
+      }
+    } else {
+      return &(it->second);
+    }
   }
 
 }

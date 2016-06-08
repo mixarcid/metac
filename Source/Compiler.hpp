@@ -6,6 +6,7 @@ namespace mc {
 
   struct Compiler {
 
+    SymbolTable global_table;
     Array<Sexp*> ast;
 
     Compiler();

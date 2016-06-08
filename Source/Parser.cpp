@@ -6,11 +6,19 @@ namespace mc {
     if (sexp_stack.empty()) {
       ast.push_back(sexp);
     } else {
-      sexp_stack.back()->sexps.push_back(sexp);
+      Sexp* back = sexp_stack.back();
+      if (back->type == SexpType::EXPR) {
+	((ExprNode*)back)->sexps.push_back(sexp);
+      } else if (back->type == SexpType::ARRAY) {
+	((ArrayNode*)back)->sexps.push_back(sexp);
+      } else {
+	assert(false);
+      }
     }
   }
   
-  void Parser::parse() {
+  void Parser::parse(SymbolTable* table) {
+    
     for (Token tok : tokens) {
 
       switch (tok.id) {
@@ -24,16 +32,77 @@ namespace mc {
 	break;
 
       case TokenId::RPAREN:
+	if (sexp_stack.empty()) {
+	  
+	  ConstNode* node = new ConstNode(Type::ERROR);
+	  node->value.str_val = "unexpected \')\'";
+	  ast.push_back(node);
+	  
+	} else {
+	  
+	  Sexp* sexp = sexp_stack.back();
+	  sexp_stack.pop_back();
+	  assert(sexp->type == SexpType::EXPR);
+	  ExprNode* expr = (ExprNode*) sexp;
+	  
+	  if (!expr->sexps.empty()) {
+
+	    Sexp* front = expr->sexps.front();
+	    if (front->type != SexpType::VAR) {
+	      break;
+	    }
+	    
+	    Value func(front->eval(table));
+	    
+	    if (func.type == Type::INTERNAL_MACRO) {
+	      Array<Sexp*> args;
+	      args.reserve(expr->sexps.size() - 1);
+	      for (u32 n=1; n<expr->sexps.size(); ++n) {
+		args.push_back(expr->sexps[n]);
+	      }
+	      Sexp* new_sexp = (*func.internal_macro_val)(args, table);
+
+	      expr->sexps.clear();
+	      delete expr;
+
+	      if (sexp_stack.empty()) {
+		
+		ast.pop_back();
+		ast.push_back(new_sexp);
+		
+	      } else {
+		
+		Sexp* sexp2 = sexp_stack.back();
+		assert(sexp2->type == SexpType::EXPR);
+		ExprNode* expr2 = (ExprNode*) sexp2;
+
+		expr2->sexps.pop_back();
+		expr2->sexps.push_back(new_sexp);
+		
+	      }
+	    }
+	  }
+	}
+	break;
+
+      case TokenId::LBRACE:
+	{
+	  ArrayNode* node = new ArrayNode();
+	  addSexp(node);
+	  sexp_stack.push_back(node);
+	}
+	break;
+
+      case TokenId::RBRACE:
 	sexp_stack.pop_back();
 	break;
 
       case TokenId::SYMBOL:
 	{
-	  SymbolTable::Id id = SymbolTable::findSymbol(tok.str_val);
-	  if (id == SymbolTable::NO_SYMBOL) {
-	    id = SymbolTable::addSymbol(tok.str_val);
+	  if (!table->hasSymbol(tok.str_val)) {
+	    table->addSymbol(tok.str_val);
 	  }
-	  VariableNode* node = new VariableNode(tok.str_val, id);
+	  VariableNode* node = new VariableNode(tok.str_val);
 	  addSexp(node);
 	}
 	break;

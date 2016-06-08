@@ -1,17 +1,29 @@
 #include "StandardLib.hpp"
 #include "SymbolTable.hpp"
 #include "Sexp.hpp"
+#include "Function.hpp"
 
 #define stdAssert(cond, msg)			\
   do {						\
     if (!(cond)) {				\
       err.str_val = msg;			\
+      return err;				\
     }						\
   } while (0)					\
 
+#define macroAssert(cond, msg, ...)				\
+  do {							\
+    if (!(cond)) {					\
+      ConstNode* ret = new ConstNode(Type::ERROR);	\
+      ret->value.str_val = msg;				\
+      __VA_ARGS__;					\
+      return ret;					\
+    }							\
+  } while (0)						\
+
 namespace mc {
 
-  Value add(Array<Value> values) {
+  Value add(Array<Value> values, SymbolTable* table) {
 
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
@@ -71,8 +83,22 @@ namespace mc {
 	}
 	break;
 
+      case Type::ARRAY:
+	switch(ret.type) {
+	case Type::NIL:
+	  ret = Value(Type::ARRAY);
+	case Type::ARRAY:
+	  for (Value& elem : val.array_val) {
+	    ret.array_val.push_back(elem);
+	  }
+	  break;
+	default:
+	  return err;
+	}
+	break;
+	
       default:
-	err.str_val = "+ function only takes ints and floats as arguments";
+	err.str_val = "+ function only takes ints, floats, strings, and arrays as arguments";
 	return err;
 	
       }
@@ -80,7 +106,88 @@ namespace mc {
     return ret;
   }
 
-  Value mul(Array<Value> values) {
+  Value sub(Array<Value> values, SymbolTable* table) {
+
+    Value err(Type::ERROR);
+    stdAssert(values.size() > 0,
+	      "- function takes at least one argument");
+    err.str_val = "Incompatible types in - function";
+    Value ret;
+
+    if (values.size() == 1) {
+      
+      if (values[0].type == Type::INT) {
+	ret = Value(Type::INT);
+	ret.int_val = -values[0].int_val;
+	return ret;
+      } else if (values[0].type == Type::FLOAT) {
+	ret = Value(Type::FLOAT);
+	ret.float_val = -values[0].float_val;
+	return ret;
+      } else {
+	return err;
+      }
+      
+    } else {
+
+      ret = values[0];
+
+      for (u32 n=1; n<values.size(); ++n) {
+
+	Value val = values[n];
+
+	switch(val.type) {
+
+	case Type::INT:
+	  switch(ret.type) {
+	  case Type::NIL:
+	    ret.type = Type::INT;
+	    ret.int_val = val.int_val;
+	    break;
+	  case Type::INT:
+	    ret.int_val -= val.int_val;
+	    break;
+	  case Type::FLOAT:
+	    ret.float_val -= val.int_val;
+	    break;
+	  default:
+	    return err;
+	  }
+	  break;
+
+	case Type::FLOAT:
+	  switch(ret.type) {
+	  case Type::NIL:
+	    ret.type = Type::FLOAT;
+	    ret.float_val = val.float_val;
+	    break;
+	  case Type::INT:
+	    {
+	      ret.type = Type::FLOAT;
+	      f32 tmp = ret.int_val;
+	      ret.float_val = tmp;
+	    }
+	  case Type::FLOAT:
+	    ret.float_val -= val.float_val;
+	    break;
+	  default:
+	    return err;
+	  }
+	  break;
+
+	default:
+	  err.str_val = "- function only takes ints and floats as arguments";
+	  return err;
+	
+	}
+	
+      }
+      
+    }
+    return ret;
+  }
+  
+  Value mul(Array<Value> values, SymbolTable* table) {
 
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
@@ -137,7 +244,7 @@ namespace mc {
     return ret;
   }
 
-  Value bool_not(Array<Value> values) {
+  Value bool_not(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() == 1,
 	      "not function only takes 1 argument");
@@ -148,7 +255,7 @@ namespace mc {
     return val;
   }
 
-  Value bool_and(Array<Value> values) {
+  Value bool_and(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
 	      "and function takes at least one argument");
@@ -162,7 +269,7 @@ namespace mc {
     return ret;
   }
   
-  Value bool_or(Array<Value> values) {
+  Value bool_or(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
 	      "or function takes at least one argument");
@@ -176,10 +283,10 @@ namespace mc {
     return ret;
   }
 
-  Value equals(Array<Value> values) {
+  Value equals(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() > 1,
-	      "equals function takes at least two arguments");
+	      "= function takes at least two arguments");
     Value ret(Type::BOOL);
     ret.bool_val = true;
     Value first_val = values[0];
@@ -192,7 +299,113 @@ namespace mc {
     return ret;
   }
 
-  Value print(Array<Value> values) {
+  Value greater(Array<Value> values, SymbolTable* table) {
+    
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 2,
+	      "> function takes two arguments");
+    Value ret(Type::BOOL);
+    
+    switch (values[0].type) {
+
+    case Type::INT:
+          
+      switch (values[0].type) {
+
+      case Type::INT:
+	ret.bool_val = (values[0].int_val > values[1].int_val);
+	break;
+
+      case Type::FLOAT:
+	ret.bool_val = (values[0].int_val > values[1].float_val);
+	break;
+      
+      default:
+	err.str_val = "> function only takes ints and floats as arguments";
+	return err;
+      }
+      break;
+
+    case Type::FLOAT:
+      switch (values[0].type) {
+
+      case Type::INT:
+	ret.bool_val = (values[0].float_val > values[1].int_val);
+	break;
+
+      case Type::FLOAT:
+	ret.bool_val = (values[0].float_val > values[1].float_val);
+	break;
+      
+      default:
+	err.str_val = "> function only takes ints and floats as arguments";
+	return err;
+      }
+      break;
+      
+    default:
+      err.str_val = "> function only takes ints and floats as arguments";
+      return err;
+    }
+
+    return ret;
+    
+  }
+
+  Value lesser(Array<Value> values, SymbolTable* table) {
+    
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 2,
+	      "< function takes two arguments");
+    Value ret(Type::BOOL);
+    
+    switch (values[0].type) {
+
+    case Type::INT:
+          
+      switch (values[0].type) {
+
+      case Type::INT:
+	ret.bool_val = (values[0].int_val < values[1].int_val);
+	break;
+
+      case Type::FLOAT:
+	ret.bool_val = (values[0].int_val < values[1].float_val);
+	break;
+      
+      default:
+	err.str_val = "< function only takes ints and floats as arguments";
+	return err;
+      }
+      break;
+
+    case Type::FLOAT:
+      switch (values[0].type) {
+
+      case Type::INT:
+	ret.bool_val = (values[0].float_val < values[1].int_val);
+	break;
+
+      case Type::FLOAT:
+	ret.bool_val = (values[0].float_val < values[1].float_val);
+	break;
+      
+      default:
+	err.str_val = "< function only takes ints and floats as arguments";
+	return err;
+      }
+      break;
+      
+    default:
+      err.str_val = "< function only takes ints and floats as arguments";
+      return err;
+    }
+
+    return ret;
+    
+  }
+
+  Value print(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
     stdAssert(values.size() > 0,
 	      "print function takes at least one argument");
@@ -204,101 +417,90 @@ namespace mc {
     return Value(Type::NIL);
   }
 
-  Value define(Array<Sexp*> args) {
+  Value _do(Array<Value> values, SymbolTable* table) {
     Value err(Type::ERROR);
-    stdAssert(args.size() == 2,
-	      "define macro only takes two arguments");
-    Sexp* var = args[0];
-    stdAssert(var->type == SexpType::VAR,
-	      "first argument to define macro must be a variable");
-    Value data(args[1]->eval());
-    if (data.type == Type::ERROR) return data;
-    ((VariableNode*)var)->setValue(data);
-    return Value(Type::NIL);
+    stdAssert(values.size() > 0,
+	      "do function takes at least one argument");
+    return values.back();
   }
 
-  Value _if(Array<Sexp*> args) {
-    Value err(Type::ERROR);
-    stdAssert(args.size() == 2 || args.size() == 3,
-	      "if macro only takes two or three arguments");
-    
-    Value cond = args[0]->eval();
-    if (cond.type == Type::ERROR) {
-      return cond;
-    }
-    stdAssert(cond.type == Type::BOOL,
-	      "first argument to if expression must evaluate to a bool");
+  Sexp* define(Array<Sexp*> args, SymbolTable* table) {
+    macroAssert(args.size() == 2,
+	      "define macro only takes two arguments");
+    macroAssert(args[0]->type == SexpType::VAR,
+	      "first argument to define macro must be a variable");
+    return new VarDeclNode((VariableNode*)args[0], args[1]);
+  }
 
-    if (cond.bool_val) {
-      return args[1]->eval();
-    } else if (args.size() > 2) {
-      return args[2]->eval();
+  Sexp* _if(Array<Sexp*> args, SymbolTable* table) {
+    if (args.size() == 2) {
+      return new IfStmtNode(args[0],
+			    args[1],
+			    new ConstNode(Type::NIL));
+    } else if (args.size() == 3) {
+      return new IfStmtNode(args[0],
+			    args[1],
+			    args[2]);
     } else {
-      return Value(Type::NIL);
+      ConstNode* ret = new ConstNode(Type::ERROR);
+      ret->value.str_val = "if macro only takes two or three arguments";
+      return ret;
+    }
+  }
+
+  Sexp* lambda(Array<Sexp*> args, SymbolTable* table) {
+    macroAssert(args.size() == 2,
+		"lambda macro only takes two arguments");
+    Sexp* first = args[0];
+    macroAssert(first->type == SexpType::EXPR,
+		"first argument to lambda macro must be a list of arguments");
+    Array<Sexp*>& inputs = ((ExprNode*)first)->sexps;
+    Function* func = Function::create();
+
+    for (Sexp* sexp : inputs) {
+      macroAssert(sexp->type == SexpType::VAR,
+		  "function arguments must be variables");
+      func->inputs.push_back((VariableNode*) sexp);
     }
     
+    func->body = args[1];
+    
+    ConstNode* ret = new ConstNode(Type::FUNCTION);
+    ret->value.func_val = func;
+    return ret;
   }
   
-  Function add_func(add);
-  Function mul_func(mul);
-  Function not_func(bool_not);
-  Function and_func(bool_and);
-  Function or_func(bool_or);
-  Function equals_func(equals);
-  Function print_func(print);
-  Macro define_macro(define);
-  Macro if_macro(_if);
+#define define_func(name, internal_name)	\
+  table->addSymbol(name);			\
+  val = table->getValue(name);			\
+  val->type = Type::INTERNAL_FUNC;		\
+  val->internal_func_val = &internal_name;
 
-  void initStandardLib() {
+#define define_macro(name, internal_name)	\
+  table->addSymbol(name);			\
+  val = table->getValue(name);			\
+  val->type = Type::INTERNAL_MACRO;		\
+  val->internal_macro_val = &internal_name;
+  
+  void initStandardLib(SymbolTable* table) {
     
-    SymbolTable::Id id;
     Value* val;
 
-    id = SymbolTable::addSymbol("+");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &add_func;
-
-    id = SymbolTable::addSymbol("*");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &mul_func;
-
-    id = SymbolTable::addSymbol("not");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &not_func;
-
-    id = SymbolTable::addSymbol("and");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &and_func;
-
-    id = SymbolTable::addSymbol("or");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &or_func;
-
-    id = SymbolTable::addSymbol("=");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &equals_func;
-
-    id = SymbolTable::addSymbol("print");
-    val = SymbolTable::getValue(id);
-    val->type = Type::FUNCTION;
-    val->func_val = &print_func;
-
-    id = SymbolTable::addSymbol("define");
-    val = SymbolTable::getValue(id);
-    val->type = Type::MACRO;
-    val->macro_val = &define_macro;
-
-    id = SymbolTable::addSymbol("if");
-    val = SymbolTable::getValue(id);
-    val->type = Type::MACRO;
-    val->macro_val = &if_macro;
-      
+    define_func("+", add);
+    define_func("-", sub);
+    define_func("*", mul);
+    define_func("not", bool_not);
+    define_func("and", bool_and);
+    define_func("or", bool_or);
+    define_func("=", equals);
+    define_func(">", greater);
+    define_func("<", lesser);
+    define_func("print", print);
+    define_func("do", _do);
+    
+    define_macro("define", define);
+    define_macro("if", _if);
+    define_macro("lambda", lambda);
   }
   
 }

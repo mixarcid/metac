@@ -3,8 +3,25 @@
 
 namespace mc {
 
+  const char COMMENT_CHAR = '#';
+
   inline bool isDigit(char c) {
     return (c >= '0' && c <= '9');
+  }
+
+  inline bool isWhiteSpace(char c) {
+    return (c == ' ' ||
+	    c == '\n' ||
+	    c == '\t');
+  }
+
+  inline bool isEndMark(char c) {
+    return (c == ')' ||
+	    c == '(' ||
+	    c == ']' ||
+	    c == '[' ||
+	    c == COMMENT_CHAR ||
+	    isWhiteSpace(c));
   }
 
   Token::Token(TokenId _id) : id(_id) {
@@ -110,6 +127,8 @@ namespace mc {
 
     case TokenId::LPAREN:
     case TokenId::RPAREN:
+    case TokenId::LBRACE:
+    case TokenId::RBRACE:
     case TokenId::NO_TOKEN:
     case TokenId::NIL:
       ret += "nil";
@@ -167,9 +186,7 @@ namespace mc {
   String Lexer::eatWord() {
     String ret;
     char cur_char = curChar();
-    while (cur_char != ' ' &&
-	   cur_char != '(' &&
-	   cur_char != ')' &&
+    while (!isEndMark(cur_char) &&
 	   index <= str.size()) {
       ret += cur_char;
       cur_char = eatChar();
@@ -242,9 +259,7 @@ namespace mc {
     char cur_char = curChar();
     if (cur_char == '+' || cur_char == '-') {
       char p = peakChar();
-      if (p == ' ' ||
-	  p == ')' ||
-	  p == '(') return false;
+      if (isEndMark(p)) return false;
     } else if (!isDigit(cur_char)) {
       return false;
     }
@@ -261,13 +276,13 @@ namespace mc {
 	    break;
 	  case TokenId::FLOAT:
 	    cur_token = Token(TokenId::ERROR);
-	    cur_token.str_val = "error parsing number";
+	    cur_token.str_val = "cannot parse number";
 	    break;
 	  default: break;
 	  }
 	} else if (!isDigit(c)) {
 	  cur_token = Token(TokenId::ERROR);
-	  cur_token.str_val = "error parsing number";
+	  cur_token.str_val = "cannot parse number";
 	}
       }
     }
@@ -278,7 +293,7 @@ namespace mc {
 	cur_token.int_val = std::stoi(word, NULL, 0);
       } catch(std::invalid_argument&) {
 	cur_token = Token(TokenId::ERROR);
-	cur_token.str_val = "error parsing number";
+	cur_token.str_val = "cannot parse number";
       }
       break;
     case TokenId::FLOAT:
@@ -286,7 +301,7 @@ namespace mc {
 	cur_token.float_val = std::stof(word);
       } catch(std::invalid_argument&) {
 	cur_token = Token(TokenId::ERROR);
-	cur_token.str_val = "error parsing number";
+	cur_token.str_val = "cannot parse number";
       }
       break;
     default: break;
@@ -300,6 +315,16 @@ namespace mc {
     while (index < str.size()) {
       
       char c = eatChar();
+      
+      if (is_comment) {
+	if (c == '\n') {
+	  is_comment = false;
+	}
+	continue;
+      } else if (isWhiteSpace(c)) {
+	continue;
+      }
+      
       switch (c) {
 	
       case '(':
@@ -312,7 +337,18 @@ namespace mc {
 	pushToken();
 	break;
 
-      case ' ':
+      case '[':
+	cur_token = Token(TokenId::LBRACE);
+	pushToken();
+	break;
+	
+      case ']':
+	cur_token = Token(TokenId::RBRACE);
+	pushToken();
+	break;
+
+      case COMMENT_CHAR:
+	is_comment = true;
 	break;
 
       default:

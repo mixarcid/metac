@@ -10,6 +10,8 @@ namespace mc {
   MC_ENUM(TokenId,
 	  LPAREN,
 	  RPAREN,
+	  LBRACE,
+	  RBRACE,
 	  SYMBOL,
 	  STRING,
 	  BOOL,
@@ -47,11 +49,13 @@ namespace mc {
     Array<Token> token_stream;
     Token cur_token;
     size_t index;
+    bool is_comment;
 
     Lexer(String _str) :
       str(_str),
       cur_token(TokenId::NO_TOKEN),
-      index(0) {}
+      index(0),
+      is_comment(false) {}
 
     char curChar();
     char peakChar();

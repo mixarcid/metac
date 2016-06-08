@@ -7,17 +7,14 @@ namespace mc {
 
   struct SymbolTable {
 
-    typedef u64 Id;
+    SymbolTable* parent;
 
-    HashMap<String, Id> symbol_map;
-    Array<Value> symbol_arr;
+    HashMap<String, Value> symbol_map;
 
-    static SymbolTable table;
-    const static Id NO_SYMBOL;
-    
-    static Id addSymbol(String name);
-    static Id findSymbol(String name);
-    static Value* getValue(Id id);
+    SymbolTable(SymbolTable* _parent) : parent(_parent) {}
+    void addSymbol(String name);
+    bool hasSymbol(String name);
+    Value* getValue(String name);
 
   };
 

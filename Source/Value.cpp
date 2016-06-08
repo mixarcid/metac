@@ -1,4 +1,5 @@
 #include "Value.hpp"
+#include "Sexp.hpp"
 
 namespace mc {
 
@@ -6,6 +7,9 @@ namespace mc {
     switch (type) {
     case Type::STRING: case Type::ERROR:
       new (&str_val) String();
+      break;
+    case Type::ARRAY:
+      new (&array_val) Array<Value>();
       break;
     default: break;
     }
@@ -28,11 +32,17 @@ namespace mc {
     case Type::FUNCTION:
       func_val = b.func_val;
       break;
-    case Type::MACRO:
-      macro_val = b.macro_val;
+    case Type::INTERNAL_FUNC:
+      internal_func_val = b.internal_func_val;
+      break;
+    case Type::INTERNAL_MACRO:
+      internal_macro_val = b.internal_macro_val;
       break;
     case Type::STRING: case Type::ERROR:
       new (&str_val) String(b.str_val);
+      break;
+    case Type::ARRAY:
+      new (&array_val) Array<Value>(b.array_val);
       break;
     default: break;
     }
@@ -55,11 +65,17 @@ namespace mc {
     case Type::FUNCTION:
       func_val = b.func_val;
       break;
-    case Type::MACRO:
-      macro_val = b.macro_val;
+    case Type::INTERNAL_FUNC:
+      internal_func_val = b.internal_func_val;
+      break;
+    case Type::INTERNAL_MACRO:
+      internal_macro_val = b.internal_macro_val;
       break;
     case Type::STRING: case Type::ERROR:
       new (&str_val) String(b.str_val);
+      break;
+    case Type::ARRAY:
+      new (&array_val) Array<Value>(b.array_val);
       break;
     default: break;
     }
@@ -70,6 +86,9 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
       break;
+    case Type::ARRAY:
+      array_val.~Array<Value>();
+      break;
     default: break;
     }
   }
@@ -78,6 +97,9 @@ namespace mc {
     switch (type) {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
+      break;
+    case Type::ARRAY:
+      array_val.~Array<Value>();
       break;
     default: break;
     }
@@ -88,6 +110,9 @@ namespace mc {
     switch (type) {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
+      break;
+    case Type::ARRAY:
+      array_val.~Array<Value>();
       break;
     default: break;
     }
@@ -121,12 +146,24 @@ namespace mc {
     case Type::STRING:
       if (b.type != Type::STRING) return false;
       return (str_val == b.str_val);
+    case Type::ARRAY:
+      {
+	if (b.type != Type::ARRAY) return false;
+	if (array_val.size() != b.array_val.size()) return false;
+	for (u32 n=0; n<array_val.size(); ++n) {
+	  if (array_val[n] != b.array_val[n]) return false;
+	}
+	return true;
+      }
     case Type::FUNCTION:
       if (b.type != Type::FUNCTION) return false;
       return (func_val == b.func_val);
-    case Type::MACRO:
-      if (b.type != Type::MACRO) return false;
-      return (macro_val == b.macro_val);
+    case Type::INTERNAL_FUNC:
+      if (b.type != Type::FUNCTION) return false;
+      return (internal_func_val == b.internal_func_val);
+    case Type::INTERNAL_MACRO:
+      if (b.type != Type::INTERNAL_MACRO) return false;
+      return (internal_macro_val == b.internal_macro_val);
     case Type::ERROR:
       if (b.type != Type::ERROR) return false;
       return (str_val == b.str_val);
@@ -159,10 +196,20 @@ namespace mc {
       return to_string(val.float_val);
     case Type::STRING:
       return val.str_val;
+    case Type::ARRAY:
+      {
+	String ret = "[ ";
+	for (Value& elem : val.array_val) {
+	  ret += to_string(elem) + " ";
+	}
+	return ret + "]";
+      }
     case Type::FUNCTION:
       return "<function>";
-    case Type::MACRO:
-      return "<macro>";
+    case Type::INTERNAL_FUNC:
+      return "<built-in function>";
+    case Type::INTERNAL_MACRO:
+      return "<built-in macro>";
     case Type::ERROR:
       return "Error: " + val.str_val;
     case Type::NIL:
