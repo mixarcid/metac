@@ -54,19 +54,42 @@ namespace mc {
     assert(body);
     Value ret;
 
-    if (values.size() != inputs.size()) {
-      ret = Value(Type::ERROR);
-      ret.str_val = "function expects " + to_string(inputs.size()) +
-	" arguments, but is called with " + to_string(values.size());
-      return ret;
+    if (!inputs.empty() && inputs.back()->name == "...") {
+      if (values.size() < inputs.size() - 1) {
+	ret = Value(Type::ERROR);
+	ret.str_val = "function expects at least " + to_string(inputs.size() - 1) +
+	  " arguments, but is called with " + to_string(values.size());
+	return ret;
+      }
+    } else {
+      if (values.size() < inputs.size()) {
+	ret = Value(Type::ERROR);
+	ret.str_val = "function expects " + to_string(inputs.size()) +
+	  " arguments, but is called with " + to_string(values.size());
+	return ret;
+      } 
     }
     
     SymbolTable child_table(table);
-    for (u32 n=0; n<values.size(); ++n) {
+    for (u32 n=0; n<inputs.size(); ++n) {
       child_table.addSymbol(inputs[n]->name);
-      inputs[n]->setValue(values[n], &child_table);
+      if (inputs[n]->name == "...") {
+	if (n != inputs.size() - 1) {
+	  ret = Value(Type::ERROR);
+	  ret.str_val = "variable arguments symbol \"...\" can only be used as last argument to function";
+	  return ret;
+	} else {
+	  Value rest(Type::ARRAY);
+	  for (u32 m=n; m<values.size(); ++m) {
+	    rest.array_val.push_back(values[m]);
+	  }
+	  inputs[n]->setValue(rest, &child_table);
+	}
+      } else {
+	inputs[n]->setValue(values[n], &child_table);
+      }
     }
-
+    
     return body->eval(&child_table);
   }
 

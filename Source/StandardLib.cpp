@@ -545,6 +545,17 @@ namespace mc {
     return values.back();
   }
 
+  Value expand(Array<Value> values, SymbolTable* table) {
+    Value err(Type::ERROR);
+    stdAssert(values.size() == 1,
+	      "expand function only takes one argument");
+    stdAssert(values[0].type == Type::ARRAY,
+	      "argument to expand function must be an array");
+    Value ret = values[0];
+    ret.type = Type::VAR_ARGS;
+    return ret;
+  }
+
   Sexp* define(Array<Sexp*> args, SymbolTable* table) {
     macroAssert(args.size() == 2,
 	      "define macro only takes two arguments");
@@ -623,6 +634,7 @@ namespace mc {
     define_func("size", size);
     define_func("print", print);
     define_func("do", _do);
+    define_func("expand", expand);
     
     define_macro("define", define);
     define_macro("if", _if);

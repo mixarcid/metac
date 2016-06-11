@@ -8,7 +8,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       new (&str_val) String();
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       new (&array_val) Array<Value>();
       break;
     default: break;
@@ -41,7 +41,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       new (&str_val) String(b.str_val);
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       new (&array_val) Array<Value>(b.array_val);
       break;
     default: break;
@@ -74,7 +74,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       new (&str_val) String(b.str_val);
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       new (&array_val) Array<Value>(b.array_val);
       break;
     default: break;
@@ -86,7 +86,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       array_val.~Array<Value>();
       break;
     default: break;
@@ -98,7 +98,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       array_val.~Array<Value>();
       break;
     default: break;
@@ -111,7 +111,7 @@ namespace mc {
     case Type::STRING: case Type::ERROR:
       str_val.~String();
       break;
-    case Type::ARRAY:
+    case Type::ARRAY: case Type::VAR_ARGS:
       array_val.~Array<Value>();
       break;
     default: break;
@@ -164,6 +164,15 @@ namespace mc {
     case Type::INTERNAL_MACRO:
       if (b.type != Type::INTERNAL_MACRO) return false;
       return (internal_macro_val == b.internal_macro_val);
+    case Type::VAR_ARGS:
+      {
+	if (b.type != Type::VAR_ARGS) return false;
+	if (array_val.size() != b.array_val.size()) return false;
+	for (u32 n=0; n<array_val.size(); ++n) {
+	  if (array_val[n] != b.array_val[n]) return false;
+	}
+	return true;
+      }
     case Type::ERROR:
       if (b.type != Type::ERROR) return false;
       return (str_val == b.str_val);
@@ -210,6 +219,14 @@ namespace mc {
       return "<built-in function>";
     case Type::INTERNAL_MACRO:
       return "<built-in macro>";
+    case Type::VAR_ARGS:
+      {
+	String ret = "var args: [ ";
+	for (Value& elem : val.array_val) {
+	  ret += to_string(elem) + " ";
+	}
+	return ret + "]";
+      }
     case Type::ERROR:
       return "Error: " + val.str_val;
     case Type::NIL:

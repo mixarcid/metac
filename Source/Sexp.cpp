@@ -34,8 +34,13 @@ namespace mc {
       Value val(sexps[n]->eval(table));
       if (val.type == Type::ERROR) {
 	return val;
+      } else if (val.type == Type::VAR_ARGS) {
+	for (auto& val2 : val.array_val) {
+	  args.push_back(val2);
+	}
+      } else {
+	args.push_back(val);
       }
-      args.push_back(val);
     }
     
     switch(func.type) {

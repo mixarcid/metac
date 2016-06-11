@@ -3,6 +3,10 @@
 (define >= (lambda (a b) (or (= a b) (> a b))))
 (define <= (lambda (a b) (or (= a b) (< a b))))
 (define to-float (lambda (n) (+ n 0.0)))
+(define var-rest (lambda (a ...) ...))
+(define rest (lambda (arr) (var-rest (expand arr))))
+(define first (lambda (arr) (at arr 0)))
+(define println (lambda (...) (print (expand ...) "\n")))
 
 (define dotimes (lambda (a b f)
 		  (if (>= a b)
@@ -42,8 +46,14 @@
 		 (if (< start end)
 		     (filter-out
 		      (primes (+ start 1) end)
-		      (lambda (n) (or (>= start n) (not (is-divisible n start))))
+		      (lambda (n) (or (>= start n)
+				      (not (is-divisible n start))))
 		      0)
 		     (numbers 2 end))))
 
-(print "primes: "(primes 2 100) "\n")
+(define arr (primes 2 100))
+
+(println "primes: " arr)
+(println "sum of primes: " (+ (expand arr)))
+(println "first prime: " (first arr))
+(println "the rest: " (rest arr))

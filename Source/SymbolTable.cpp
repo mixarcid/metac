@@ -4,7 +4,12 @@
 namespace mc {
 
   void SymbolTable::addSymbol(String name) {
-    symbol_map[name] = Value(Type::NIL);
+    auto it = symbol_map.find(name);
+    if (it == symbol_map.end()) {
+      Value* val = &(symbol_map[name]);
+      *val = Value(Type::ERROR);
+      val->str_val = "undefined variable \"" + name + "\"";
+    }
   }
 
   bool SymbolTable::hasSymbol(String name) {

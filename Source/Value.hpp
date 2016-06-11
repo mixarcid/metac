@@ -17,6 +17,7 @@ namespace mc {
 	  FUNCTION,
 	  INTERNAL_FUNC,
 	  INTERNAL_MACRO,
+	  VAR_ARGS,
 	  ERROR,
 	  NIL);
 
